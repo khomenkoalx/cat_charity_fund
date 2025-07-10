@@ -1,11 +1,11 @@
-from sqlalchemy import Column, Integer, Boolean, DateTime
+# abstract_base.py
+from sqlalchemy import Column, DateTime, Boolean, Integer
 from datetime import datetime
 from app.core.db import Base
 
-class BaseCharity(Base):
+class AbstractBaseModel(Base):
     __abstract__ = True
 
-    id = Column(Integer, primary_key=True)
     full_amount = Column(Integer, nullable=False)
     invested_amount = Column(Integer, default=0)
     fully_invested = Column(Boolean, default=False)

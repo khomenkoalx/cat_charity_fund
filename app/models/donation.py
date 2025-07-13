@@ -1,10 +1,8 @@
-# donation.py
-from sqlalchemy import Column, Text, Integer, ForeignKey
-from app.models.base import AbstractBaseModel
+from sqlalchemy import Column, Integer, String, ForeignKey
+from app.models.base import BaseModel
 
-class Donation(AbstractBaseModel):
-    __tablename__ = "donation"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
-    comment = Column(Text, nullable=True)
+class Donation(BaseModel):
+    user_id = Column(Integer, ForeignKey('user.id'))
+    comment = Column(String(256))
+    full_amount = Column(Integer, nullable=False)

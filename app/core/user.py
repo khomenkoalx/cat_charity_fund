@@ -1,4 +1,3 @@
-# app/core/user.py
 from typing import Optional, Union
 
 from fastapi import Depends, Request
@@ -23,6 +22,7 @@ async def get_user_db(session: AsyncSession = Depends(get_async_session)):
 
 bearer_transport = BearerTransport(tokenUrl='auth/jwt/login')
 
+
 def get_jwt_strategy() -> JWTStrategy:
     return JWTStrategy(secret=settings.secret, lifetime_seconds=3600)
 
@@ -33,13 +33,14 @@ auth_backend = AuthenticationBackend(
     get_strategy=get_jwt_strategy
 )
 
+
 class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
 
     async def validate_password(
             self,
             password: str,
             user: Union[UserCreate, User]
-        ) -> None:
+    ) -> None:
         if len(password) < 3:
             raise InvalidPasswordException(
                 reason='At least 3 chars'
@@ -48,7 +49,7 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
             raise InvalidPasswordException(
                 reason='No emain in pass'
             )
-    
+
     async def on_after_register(
             self,
             user: User,

@@ -21,6 +21,7 @@ user_router.include_router(
     fastapi_users.get_users_router(UserRead, UserUpdate)
 )
 
+
 @user_router.delete(
     "/users/{id}",
     tags=["users"],

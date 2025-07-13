@@ -1,23 +1,32 @@
-from pydantic import BaseModel, condecimal, Field
-from datetime import datetime
+from pydantic import BaseModel, Field
 from typing import Optional
+from datetime import datetime
 
-class DonationBase(BaseModel):
-    amount: condecimal(gt=0, decimal_places=2)
-    comment: Optional[str] = None
 
 class DonationCreate(BaseModel):
     full_amount: int = Field(..., gt=0)
-    comment: Optional[str]
+    comment: Optional[str] = Field(None)
 
-class DonationRead(BaseModel):
-    id: int
+
+class DonationDB(BaseModel):
     full_amount: int
-    invested_amount: int
-    fully_invested: bool
+    comment: Optional[str]
+    id: int
     create_date: datetime
     user_id: int
-    charity_project_id: Optional[int]
+    invested_amount: int
+    fully_invested: bool
+    close_date: Optional[datetime]
+
+    class Config:
+        orm_mode = True
+
+
+class DonationUserResponse(BaseModel):
+    full_amount: int
+    comment: Optional[str]
+    id: int
+    create_date: datetime
 
     class Config:
         orm_mode = True

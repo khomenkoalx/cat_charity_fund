@@ -1,13 +1,33 @@
-from fastapi import APIRouter, status
-from typing import List
-from app.schemas import DonationCreate, DonationRead
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.schemas import DonationCreate, DonationDB, DonationUserResponse
+from app.core.db import get_async_session
+from app.core.user import current_user, current_superuser
+from app.crud.donation import donation_crud
 
 router = APIRouter()
 
-@router.get('/', response_model=List[DonationRead], tags=['Donations'])
-async def get_all_donations():
-    return []
 
-@router.post('/', response_model=DonationRead, response_model_exclude_none=True)
-async def create_donation(donation: DonationCreate):
-    return donation
+@router.get('/', response_model=list[DonationDB])
+async def get_all_donations(
+    session: AsyncSession = Depends(get_async_session),
+    user: dict = Depends(current_superuser)
+):
+    return await donation_crud.get_multi(session)
+
+
+@router.post('/', response_model=DonationUserResponse)
+async def create_donation(
+    donation: DonationCreate,
+    session: AsyncSession = Depends(get_async_session),
+    user: dict = Depends(current_user)
+):
+    return await donation_crud.create(donation, user.id, session)
+
+
+@router.get('/my', response_model=list[DonationUserResponse])
+async def get_my_donations(
+    session: AsyncSession = Depends(get_async_session),
+    user: dict = Depends(current_user)
+):
+    return await donation_crud.get_by_user(user.id, session)

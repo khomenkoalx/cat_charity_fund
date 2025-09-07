@@ -4,6 +4,8 @@ from app.schemas import DonationCreate, DonationDB, DonationUserResponse
 from app.core.db import get_async_session
 from app.core.user import current_user, current_superuser
 from app.crud.donation import donation_crud
+from app.crud.charity_project import charity_project_crud
+from app.services.investment import invest_money
 
 router = APIRouter()
 
@@ -22,7 +24,12 @@ async def create_donation(
     session: AsyncSession = Depends(get_async_session),
     user: dict = Depends(current_user)
 ):
-    return await donation_crud.create(donation, user.id, session)
+    new_donation = await donation_crud.create(donation, user.id, session)
+    projects = await charity_project_crud.get_unfinished_ordered(session)
+    invest_money(new_donation, projects)
+    await session.commit()
+    await session.refresh(new_donation)
+    return new_donation
 
 
 @router.get('/my', response_model=list[DonationUserResponse])

@@ -1,46 +1,29 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from datetime import datetime
-from app.models import CharityProject, Donation
+from typing import Iterable, List, Tuple
 
 
-async def invest_money(session: AsyncSession):
-    result = await session.execute(
-        select(CharityProject).where(~CharityProject.fully_invested).order_by(
-            CharityProject.create_date
-        )
-    )
-    projects = result.scalars().all()
+def invest_money(target, sources: Iterable) -> Tuple[object, List[object]]:
 
-    result = await session.execute(
-        select(Donation).where(~Donation.fully_invested).order_by(
-            Donation.create_date
-        )
-    )
-    donations = result.scalars().all()
+    for source in sources:
+        if getattr(target, 'fully_invested', False):
+            break
+        if getattr(source, 'fully_invested', False):
+            continue
 
-    for project in projects:
-        for donation in donations:
-            if donation.fully_invested or project.fully_invested:
-                continue
+        target_needed = target.full_amount - target.invested_amount
+        source_available = source.full_amount - source.invested_amount
+        transfer_amount = min(target_needed, source_available)
+        if transfer_amount <= 0:
+            continue
 
-            available = donation.full_amount - donation.invested_amount
-            needed = project.full_amount - project.invested_amount
+        for obj in (target, source):
+            if obj is target:
+                obj.invested_amount += transfer_amount
+            else:
+                obj.invested_amount += transfer_amount
 
-            amount = min(available, needed)
+            if obj.invested_amount == obj.full_amount:
+                obj.fully_invested = True
+                obj.close_date = datetime.utcnow()
 
-            if amount > 0:
-                donation.invested_amount += amount
-                project.invested_amount += amount
-
-                if donation.invested_amount == donation.full_amount:
-                    donation.fully_invested = True
-                    donation.close_date = datetime.utcnow()
-
-                if project.invested_amount == project.full_amount:
-                    project.fully_invested = True
-                    project.close_date = datetime.utcnow()
-
-    await session.commit()
-
-    return projects, donations
+    return target, list(sources)

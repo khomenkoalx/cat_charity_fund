@@ -2,7 +2,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.donation import Donation
 from app.schemas.donation import DonationCreate
-from app.services.investment import invest_money
 from .base import CRUDBase
 
 
@@ -25,9 +24,16 @@ class CRUDDonation(CRUDBase):
         new_donation = self.model(user_id=user_id, **obj_in.dict())
         session.add(new_donation)
         await session.flush()
-        await invest_money(session)
         await session.refresh(new_donation)
         return new_donation
+
+    async def get_unfinished_ordered(self, session: AsyncSession):
+        result = await session.execute(
+            select(self.model).where(~self.model.fully_invested).order_by(
+                self.model.create_date
+            )
+        )
+        return result.scalars().all()
 
 
 donation_crud = CRUDDonation()

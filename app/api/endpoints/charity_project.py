@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas import (
     CharityProjectCreate, CharityProjectUpdate,
@@ -7,9 +7,18 @@ from app.schemas import (
 from app.core.db import get_async_session
 from app.core.user import current_superuser
 from app.crud.charity_project import charity_project_crud
+from app.crud.donation import donation_crud
 from app.core.constants import (
     ALLOWED_FIELDS, ERROR_PROJECT_NOT_FOUND,
     ERROR_PROJECT_PATCH_FORBIDDEN_FIELDS
+)
+from app.services.investment import invest_money
+from app.api.validators.charity_project import (
+    validate_patch_fields,
+    ensure_project_exists,
+    ensure_project_create_valid,
+    ensure_project_update_valid,
+    ensure_project_delete_valid,
 )
 
 router = APIRouter()
@@ -26,7 +35,13 @@ async def create_project(
     session: AsyncSession = Depends(get_async_session),
     user: dict = Depends(current_superuser)
 ):
-    return await charity_project_crud.create(project, session)
+    await ensure_project_create_valid(project, session)
+    new_project = await charity_project_crud.create(project, session)
+    donations = await donation_crud.get_unfinished_ordered(session)
+    invest_money(new_project, donations)
+    await session.commit()
+    await session.refresh(new_project)
+    return new_project
 
 
 @router.patch('/{project_id}', response_model=CharityProjectDB)
@@ -38,18 +53,18 @@ async def update_project(
     user: dict = Depends(current_superuser)
 ):
     body = await request.json()
-    extra_fields = set(body.keys()) - ALLOWED_FIELDS
-    if extra_fields:
-        raise HTTPException(
-            status_code=422,
-            detail=ERROR_PROJECT_PATCH_FORBIDDEN_FIELDS + ', '.join(
-                extra_fields
-            )
-        )
+    validate_patch_fields(
+        body,
+        ALLOWED_FIELDS,
+        ERROR_PROJECT_PATCH_FORBIDDEN_FIELDS
+    )
     db_obj = await charity_project_crud.get(project_id, session)
-    if not db_obj:
-        raise HTTPException(status_code=404, detail=ERROR_PROJECT_NOT_FOUND)
-    return await charity_project_crud.update(db_obj, obj_in, session)
+    ensure_project_exists(db_obj, ERROR_PROJECT_NOT_FOUND)
+    await ensure_project_update_valid(db_obj, obj_in, session)
+    updated = await charity_project_crud.update(db_obj, obj_in, session)
+    await session.commit()
+    await session.refresh(updated)
+    return updated
 
 
 @router.delete('/{project_id}', response_model=CharityProjectDB)
@@ -59,6 +74,8 @@ async def delete_project(
     user: dict = Depends(current_superuser)
 ):
     db_obj = await charity_project_crud.get(project_id, session)
-    if not db_obj:
-        raise HTTPException(status_code=404, detail=ERROR_PROJECT_NOT_FOUND)
-    return await charity_project_crud.remove(db_obj, session)
+    ensure_project_exists(db_obj, ERROR_PROJECT_NOT_FOUND)
+    ensure_project_delete_valid(db_obj)
+    removed = await charity_project_crud.remove(db_obj, session)
+    await session.commit()
+    return removed

@@ -27,8 +27,7 @@ async def create_donation(
     new_donation = await donation_crud.create(donation, user.id, session)
     projects = await charity_project_crud.get_unfinished_ordered(session)
     invest_money(new_donation, projects)
-    await session.commit()
-    await session.refresh(new_donation)
+    await donation_crud.commit_and_refresh(new_donation, session)
     return new_donation
 
 

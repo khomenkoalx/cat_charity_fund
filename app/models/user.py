@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTable
+
 from app.core.db import Base
 
 

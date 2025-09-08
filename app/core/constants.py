@@ -25,3 +25,6 @@ FORBIDDEN_FIELDS = {
     'id',
 }
 ALLOWED_FIELDS = {'name', 'description', 'full_amount'}
+
+JWT_LIFETIME_VALUE = 3600
+MIN_PASSWORD_LENGTH = 3

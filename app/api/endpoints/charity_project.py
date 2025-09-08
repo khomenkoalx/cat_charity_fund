@@ -39,8 +39,6 @@ async def create_project(
     new_project = await charity_project_crud.create(project, session)
     donations = await donation_crud.get_unfinished_ordered(session)
     invest_money(new_project, donations)
-    await session.commit()
-    await session.refresh(new_project)
     return new_project
 
 
@@ -62,8 +60,6 @@ async def update_project(
     ensure_project_exists(db_obj, ERROR_PROJECT_NOT_FOUND)
     await ensure_project_update_valid(db_obj, obj_in, session)
     updated = await charity_project_crud.update(db_obj, obj_in, session)
-    await session.commit()
-    await session.refresh(updated)
     return updated
 
 
@@ -77,5 +73,4 @@ async def delete_project(
     ensure_project_exists(db_obj, ERROR_PROJECT_NOT_FOUND)
     ensure_project_delete_valid(db_obj)
     removed = await charity_project_crud.remove(db_obj, session)
-    await session.commit()
     return removed

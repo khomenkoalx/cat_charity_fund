@@ -27,10 +27,12 @@ class CRUDBase:
         for key, value in obj_in.dict(exclude_unset=True).items():
             setattr(db_obj, key, value)
         await session.flush()
+        await session.commit()
         await session.refresh(db_obj)
         return db_obj
 
     async def remove(self, db_obj, session: AsyncSession):
         await session.delete(db_obj)
         await session.flush()
+        await session.commit()
         return db_obj

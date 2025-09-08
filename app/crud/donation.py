@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+
 from app.models.donation import Donation
 from app.schemas.donation import DonationCreate
 from .base import CRUDBase
@@ -26,6 +27,14 @@ class CRUDDonation(CRUDBase):
         await session.flush()
         await session.refresh(new_donation)
         return new_donation
+
+    async def commit_and_refresh(
+        self,
+        instance: Donation,
+        session: AsyncSession
+    ):
+        await session.commit()
+        await session.refresh(instance)
 
     async def get_unfinished_ordered(self, session: AsyncSession):
         result = await session.execute(
